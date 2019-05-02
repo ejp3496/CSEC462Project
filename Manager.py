@@ -94,8 +94,9 @@ def printLogs(logs):
     for i in logs:
         infile = open(i,'r')
         lines=infile.readlines()
+        print(i+":")
         for line in lines[-10:]:
-            print(i+" --- "+line)
+            print("| "+line)
         infile.close()
 
 
