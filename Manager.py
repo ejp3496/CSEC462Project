@@ -4,8 +4,28 @@ from os import listdir
 from os.path import isfile, join
 from os import walk
 import re
+import argparse
+#import lmutils
 
 LOG_PATH="/var/log"
+
+#
+# Function:     getArgs
+# Description:  check for cli args and maybe do something?
+# Params:       none
+# Returns:      none
+# TODO          add more args -- any suggestions?
+# Args:         -h -l
+#
+def getArgs():
+
+    parser = argparse.ArgumentParser(description = "command line log manager")
+    parser.add_argument("-l", "--log", help = "specify (each) log # to grab from command line", action="store", type = int, nargs="+")
+    args = parser.parse_args()
+    # TODO get these to the print function somehow, its late and im tired
+    if args.log:
+        #print(args.log)
+    return
 
 #
 # Function: listLogs
@@ -94,11 +114,11 @@ def printLogs(logs):
     for i in logs:
         infile = open(i,'r')
         lines=infile.readlines()
-        print(i+":")
         for line in lines[-10:]:
-            print("| "+line)
+            print(i+" --- "+line)
         infile.close()
 
-
+getArgs()
 c = userChoice()
 printLogs(c)
+
