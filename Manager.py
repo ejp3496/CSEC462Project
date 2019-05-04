@@ -66,6 +66,7 @@ def listLogs():
 # Returns: list of indexes of logs to list (this is subject to change)
 def userChoice():
     os.system('clear')
+    print'-'*80+'\nPrint Logs\n'+'-'*80
     count=0
     logs = listLogs()
     for log in logs:
@@ -95,6 +96,7 @@ def userChoice():
 # Return: none
 def authStats():
     os.system('clear')
+    print'-'*80+"\nLogin Statistics\n"+'-'*80
     logs = listLogs()
     if "/var/log/auth.log" not in logs:
         print "This system does not have the auth.log log"
@@ -106,6 +108,9 @@ def authStats():
     loginusers=[]
     sshlogins=0
     sshloginusers=[]
+    sshconnectionIPs=[]
+    newusers=[]
+
     for entry in entries:
         newlogin = ".* systemd-logind.* New session.*"
         p = re.compile(newlogin)
@@ -129,17 +134,53 @@ def authStats():
             if s not in sshloginusers:
                 sshloginusers.append(s)
             print s+" connected via ssh "+str(getTime(entry))
-            
-    print "\n"+str(logins)+" logins"
+        result=''
+        ipaddr="[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
+        p = re.compile(ipaddr)
+        result=p.search(entry)
+        if result:
+            if "sshd" in entry and "from" in entry:
+                result=result.group(0)
+                if result not in sshconnectionIPs:
+                    if "Failed" in entry or "Invalid" in entry:
+                        print result+" Failed to login to ssh at"+str(getTime(entry))
+                    else:
+                        print result+" logged into ssh at"+str(getTime(entry))
+                    sshconnectionIPs.append(result)
+        if "new user" in entry:
+            print "New user created "+entry.split(" ")[10][:-1]+" at "+str(getTime(entry))
+            newusers.append(entry.split(" ")[10][5:-1])
+
+    print"\n"
+    print("-"*80)
+
+    print str(logins)+" logins"
     print "\nusers that logged in:"
     for u in loginusers:
         print u
-    print "\n"+str(sshlogins)+" ssh logins"
+
+    print"\n"
+    print("-"*80)
+
+    print str(sshlogins)+" ssh logins"
     print "\nssh users that logged in:"
     for u in sshloginusers:
         print u
+    
+    print"\n"
+    print("-"*80)
 
+    print "IPs that connected to ssh:"
+    for ip in sshconnectionIPs:
+        print ip
+    
+    print"\n"
+    print("-"*80)
 
+    print "New Users created:"
+    for u in newusers:
+        print u
+    print"\n"
 
 #
 # Function: mainmenu
@@ -149,6 +190,7 @@ def authStats():
 # Returns:
 def mainmenu():
     os.system('clear')
+    print('-'*80+"\nLog Reader\n"+'-'*80)
     print("1) Read Logs")
     print("2) Login Statistics")
     print("3) Apache statistics")
