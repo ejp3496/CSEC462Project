@@ -3,6 +3,7 @@
 from os import listdir
 from os.path import isfile, join
 from os import walk
+from datetime import datetime
 import re
 import argparse
 #import lmutils
@@ -23,13 +24,12 @@ def getArgs():
     parser.add_argument("-l", "--log", help = "specify (each) log # to grab from command line", action="store", type = int, nargs="+")
     args = parser.parse_args()
     # TODO get these to the print function somehow, its late and im tired
-    if args.log:
+    #if args.log:
         #print(args.log)
-    return
 
-#
 # Function: listLogs
 # Description: list the available lgofiles on the system in LOG_PATH
+#              the log files have been narrowed down to apache2, auth, and kern
 # Params: none
 # Returns: list of current log files 
 #
@@ -46,10 +46,13 @@ def listLogs():
 
     # add only current logs (i.e. not logs like foo.log.1 or foo.log.2.gz)
     # may need a function to go back further in logs using those files
+    # filter for the logs apache2, auth and kern
     for log in f:
         parts=log.split('.')
+        filterlogs=["/var/log/auth","/var/log/apache2/access","/var/log/kern"]
         if len(parts)==1 or (len(parts)==2 and parts[1]=='log'):
-            logs.append(log)
+            if parts[0] in filterlogs:
+                logs.append(log)
     return logs
 
 #
@@ -96,29 +99,58 @@ def userChoice():
 # We may want to think about narrowing the scope to only deal with common/popular logs.
 def getTime(entry):
     
-    type1 = re.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
-    type2 = re.compile("[a-zA-Z]{3} [0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
-    type3 = re.compile("[0-9]{2}/[a-zA-Z]{3}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2}")
-    type4 = re.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
+    date=''
+    if entry.split(" --- ")[0] == "/var/log/apache2/access.log":
+        typeApache = "[0-9]{2}/[a-zA-Z]{3,9}/[0-9]{4}:[0-9]{2}:[0-9]{2}:[0-9]{2}"
+        p = re.compile(typeApache)
+        result = p.search(entry)
+        result = result.group(0)
+        date = datetime.strptime(result, '%d/%B/%Y:%H:%M:%S')
+    else:
+        typeAuth = "[a-zA-Z]{3,9} [0-9\s][0-9] [0-9]{2}:[0-9]{2}:[0-9]{2}"
+        p = re.compile(typeAuth)
+        result = p.search(entry)
+        result = result.group(0)
+        date = datetime.strptime(result, '%B %d %H:%M:%S').replace(year=2019)
+    
+    return date
 
 #
-# Function: printLogs
-# Description: print logs associated with the indexes chosen by the user
+# Function: timeCompare
+# Description: use getTime to compare the time of two entries
+# Params: a - first entry
+#         b - second entry
+# returns: 1 or -1 based on compare
+def timeCompare(a,b):
+    if getTime(a) > getTime(b):
+        return 1
+    else:
+        return -1
+        
+#
+# Function: readLogs
+# Description: read logs associated with the indexes chosen by the user
 # at some point this function may have another parameter/s for filters
 #
 # Params: logs - the list of logs to print
 #
-# Returns: none
-def printLogs(logs):
+# Returns: entries - list of entries
+def readLogs(logs):
  
+    entries=[]
     for i in logs:
         infile = open(i,'r')
         lines=infile.readlines()
         for line in lines[-10:]:
-            print(i+" --- "+line)
+            entries.append(i+" --- "+line)
         infile.close()
+    entries.sort(timeCompare)
+    return entries
 
-getArgs()
+#getArgs()
 c = userChoice()
-printLogs(c)
+entries = readLogs(c)
+for entry in entries:
+    print entry
+getTime(entries[0])
 
