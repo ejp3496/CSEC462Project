@@ -181,6 +181,52 @@ def authStats():
     for u in newusers:
         print u
     print"\n"
+#
+# Function: apachestats
+# Description: collect statistics on apache logs
+#
+# Params: none
+# Returns: none
+def apachestats():
+    os.system('clear')
+    print('-'*80+'\nApache2 Statistics\n'+'-'*80)
+    logs = listLogs()
+    if "/var/log/apache2/access.log" not in logs:
+        print "This system does not have the auth.log log"
+        return
+    c=["/var/log/apache2/access.log"]
+    entries = readLogs(c)
+    
+
+    ips=[]
+    hits=0
+    successful=0
+    unsuccessful=0
+    for entry in entries:
+        if "GET" in entry:
+            ipaddr="[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
+            p = re.compile(ipaddr)
+            result=p.search(entry)
+            if result:
+                result = result.group(0)
+                hits+=1
+                if "200" in entry:
+                    successful+=1
+                elif "400" in entry:
+                    unsuccessful+=1
+                else:
+                    other+=1
+                if result not in ips:
+                    ips.append(result)
+
+    print "\nSite was Requested "+str(hits)+" times.\n"
+    print "successful hits: "+str(successful)
+    print "unsuccessful hits: "+str(unsuccessful)
+    print '-'*80
+    print "\nThe following IP address requested the site"
+    for ip in ips:
+        print ip
+
 
 #
 # Function: mainmenu
@@ -208,7 +254,7 @@ def mainmenu():
     elif int(uinput)==2:
         authStats()
     else:
-        exit(0)
+        apachestats()
 
 #
 # Function: getTime
